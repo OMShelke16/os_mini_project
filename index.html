@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Replacement Simulator</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+  <header>
+    <h1>Page Replacement Algorithm Simulator</h1>
+    <p class="subtitle">Operating Systems Mini Project &mdash; FIFO | LRU | Optimal</p>
+    <nav>
+      <button class="tab-btn active" data-tab="simulator">Simulator</button>
+      <button class="tab-btn" data-tab="theory">Theory</button>
+      <button class="tab-btn" data-tab="compare">Compare</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ===== SIMULATOR TAB ===== -->
+    <div class="tab-content active" id="tab-simulator">
+
+      <div class="two-col">
+
+        <!-- LEFT: Input -->
+        <div class="card" id="input-card">
+          <h2>Settings</h2>
+
+          <div class="form-group">
+            <label>Algorithm</label>
+            <div class="radio-row">
+              <label><input type="radio" name="algo" value="fifo" checked> FIFO</label>
+              <label><input type="radio" name="algo" value="lru"> LRU</label>
+              <label><input type="radio" name="algo" value="optimal"> Optimal</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Number of Frames: <strong id="frame-val">3</strong></label>
+            <input type="range" id="frame-slider" min="1" max="7" value="3">
+          </div>
+
+          <div class="form-group">
+            <label>Page Reference String</label>
+            <input type="text" id="page-input" value="7 0 1 2 0 3 0 4 2 3 0 3 2" placeholder="e.g. 1 2 3 4 1 2 5">
+            <div class="input-hint">Separate pages with spaces</div>
+          </div>
+
+          <div class="form-group">
+            <label>Speed</label>
+            <div class="radio-row">
+              <label><input type="radio" name="speed" value="900"> Slow</label>
+              <label><input type="radio" name="speed" value="450" checked> Normal</label>
+              <label><input type="radio" name="speed" value="150"> Fast</label>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button id="btn-run" class="btn-primary">▶ Run</button>
+            <button id="btn-step" class="btn-outline">Step</button>
+            <button id="btn-reset" class="btn-outline">Reset</button>
+            <button id="btn-random" class="btn-outline">Random</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Stats -->
+        <div class="card" id="stats-card">
+          <h2>Results</h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-num" id="s-faults">—</div>
+              <div class="stat-label">Page Faults</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num" id="s-hits">—</div>
+              <div class="stat-label">Page Hits</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num" id="s-hitratio">—</div>
+              <div class="stat-label">Hit Ratio</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num" id="s-faultrate">—</div>
+              <div class="stat-label">Fault Rate</div>
+            </div>
+          </div>
+
+          <div class="explanation-box" id="explanation">
+            Press <strong>Run</strong> or <strong>Step</strong> to start the simulation.
+          </div>
+        </div>
+      </div>
+
+      <!-- Reference String Row -->
+      <div class="card" id="ref-card">
+        <h2>Reference String</h2>
+        <div id="ref-row" class="ref-row"></div>
+      </div>
+
+      <!-- Memory Frames -->
+      <div class="card">
+        <h2>Memory Frames (Current State)</h2>
+        <div id="frames-display" class="frames-display"></div>
+      </div>
+
+      <!-- Trace Table -->
+      <div class="card">
+        <h2>Step-by-Step Trace</h2>
+        <div class="table-scroll">
+          <table id="trace-table">
+            <thead id="trace-thead"></thead>
+            <tbody id="trace-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== THEORY TAB ===== -->
+    <div class="tab-content" id="tab-theory">
+
+      <div class="card">
+        <h2>What is Page Replacement?</h2>
+        <p>
+          When there’s not enough space in physical memory (RAM) for all the program pages, the operating system needs to decide which pages to remove to bring in new ones. This is called page replacement.
+        </p>
+        <div class="note">
+          <strong>Goal:</strong> Try to reduce the number of times you have to load a page from disk (page faults).
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Key Terms</h2>
+        <table class="terms-table">
+          <tr><th>Term</th><th>Meaning</th></tr>
+          <tr><td>Page</td><td>A block of program data that can be loaded in RAM</td></tr>
+          <tr><td>Frame</td><td>A slot in RAM where a page can sit</td></tr>
+          <tr><td>Page Fault</td><td>The needed page is not in RAM, so it must be loaded</td></tr>
+          <tr><td>Page Hit</td><td>The needed page is already in RAM</td></tr>
+          <tr><td>Hit Ratio</td><td>Number of hits compared to total requests</td></tr>
+          <tr><td>Thrashing</td><td>Too many page faults, making the computer very slow</td></tr>
+        </table>
+      </div>
+
+      <div class="algo-cards">
+
+        <div class="card algo-card">
+          <h2 class="algo-title fifo-color">FIFO — First In, First Out</h2>
+          <p>
+            <strong>Simple idea:</strong> Remove the page that’s been in memory the longest.<br>
+            <strong>How it works:</strong> Imagine a line of pages. When a new page needs space, kick out the one at the front of the line and add the new one to the end.
+          </p>
+          <ul>
+            <li>Easy to use</li>
+            <li>Doesn’t care how often a page is needed</li>
+            <li>Can sometimes make things worse by adding more memory (Bélády's Anomaly)</li>
+          </ul>
+        </div>
+
+        <div class="card algo-card">
+          <h2 class="algo-title lru-color">LRU — Least Recently Used</h2>
+          <p>
+            <strong>Simple idea:</strong> Remove the page that hasn’t been used in the longest time.<br>
+            <strong>How it works:</strong> Keep track of when you last used each page. If you need space, remove the page you used the longest time ago.
+          </p>
+          <ul>
+            <li>Works well in practice</li>
+            <li>No Bélády's Anomaly</li>
+            <li>Needs some way to track usage times</li>
+          </ul>
+        </div>
+
+        <div class="card algo-card">
+          <h2 class="algo-title opt-color">Optimal (Bélády's Algorithm)</h2>
+          <p>
+            <strong>Simple idea:</strong> Remove the page that will not be used for the longest time in the future.<br>
+            <strong>How it works:</strong> Look ahead in the reference string, and pick the page that is needed farthest in the future (or not at all).
+          </p>
+          <ul>
+            <li>Best possible method</li>
+            <li>Impossible in real life because we can’t see the future</li>
+            <li>Great for comparing other algorithms</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="card">
+        <h2>Algorithm Comparison at a Glance</h2>
+        <table class="terms-table">
+          <tr>
+            <th>Property</th>
+            <th class="fifo-color">FIFO</th>
+            <th class="lru-color">LRU</th>
+            <th class="opt-color">Optimal</th>
+          </tr>
+          <tr><td>Eviction rule</td><td>Oldest loaded page</td><td>Least recently used</td><td>Farthest future use</td></tr>
+          <tr><td>Implementable?</td><td>Yes</td><td>Yes (needs tracking)</td><td>No</td></tr>
+          <tr><td>Performance</td><td>OK</td><td>Good</td><td>Best</td></tr>
+          <tr><td>Bélády's Anomaly</td><td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td>Complexity</td><td>Easy</td><td>Medium</td><td>Hard (simulation only)</td></tr>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ===== COMPARE TAB ===== -->
+    <div class="tab-content" id="tab-compare">
+
+      <div class="card">
+        <h2>Compare All Algorithms</h2>
+        <p>Enter the same reference string and frame count to run all three algorithms and compare results.</p>
+
+        <div class="form-row">
+          <div class="form-group" style="flex:1">
+            <label>Page Reference String</label>
+            <input type="text" id="cmp-input" value="7 0 1 2 0 3 0 4 2 3 0 3 2" placeholder="e.g. 1 2 3 4 1 2 5">
+          </div>
+          <div class="form-group" style="min-width:160px">
+            <label>Frames: <strong id="cmp-frame-val">3</strong></label>
+            <input type="range" id="cmp-frame-slider" min="1" max="7" value="3">
+          </div>
+          <div class="form-group" style="align-self:flex-end">
+            <button id="cmp-run-btn" class="btn-primary">Compare</button>
+            <button id="cmp-random-btn" class="btn-outline">Random</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cmp-results" class="cmp-results"></div>
+
+      <div id="cmp-chart-card" class="card" style="display:none">
+        <h2>Page Faults — Bar Chart</h2>
+        <div id="cmp-chart" class="bar-chart"></div>
+      </div>
+
+      <div id="cmp-verdict" class="card verdict-card" style="display:none">
+        <h2>Verdict</h2>
+        <p id="cmp-verdict-text"></p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Page Replacement Algorithm Simulator &mdash; OS Mini Project</p>
+  </footer>
+
+  <script src="js/algorithms.js"></script>
+  <script src="js/simulator.js"></script>
+  <script src="js/compare.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
